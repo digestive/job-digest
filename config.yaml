@@ -1,0 +1,298 @@
+# ---------------------------------------------------------------------------
+# Job Digest Configuration
+# Edit this file to adjust what gets searched, filtered, and emailed to you.
+# ---------------------------------------------------------------------------
+
+# JSearch API settings
+api:
+  # How far back to look for postings each run.
+  # Options: today | 3days | week | month
+  # NOTE: Use '3days' or 'week' rather than 'today'. 'today' only returns jobs
+  # posted in the current calendar day, which is very sparse. The seen_jobs.json
+  # deduplication prevents re-sending anything you've already received, so a
+  # wider window is safe and ensures you catch everything.
+  date_posted: "3days"
+  # Number of result pages per search (1 page ≈ 10 results).
+  # Increase to 2-3 if you want more results; watch your API quota.
+  num_pages: 1
+
+# ---------------------------------------------------------------------------
+# Search queries sent to the JSearch API.
+# Each entry produces one API call. Keep total calls ≤ ~6/day on the free
+# tier (200 requests/month).  remote_only: true fetches jobs with no
+# specific city — use this to catch fully-remote postings.
+# ---------------------------------------------------------------------------
+searches:
+  # -- Quality Assurance --
+  - query: "quality assurance engineer"
+    location: "San Francisco, CA, USA"
+    category: qa
+  - query: "quality assurance manager"
+    location: "San Francisco, CA, USA"
+    category: qa
+  - query: "quality assurance engineer"
+    remote_only: true
+    category: qa
+
+  # -- Product Manager --
+  - query: "product manager"
+    location: "San Francisco, CA, USA"
+    category: pm
+  - query: "associate product manager"
+    location: "San Francisco, CA, USA"
+    category: pm
+  - query: "product manager"
+    remote_only: true
+    category: pm
+
+  # -- Writing --
+  - query: "technical writer"
+    location: "San Francisco, CA, USA"
+    category: writing
+  - query: "technical writer"
+    remote_only: true
+    category: writing
+  - query: "copywriter"
+    location: "San Francisco, CA, USA"
+    category: writing
+  - query: "content writer"
+    location: "San Francisco, CA, USA"
+    category: writing
+
+# ---------------------------------------------------------------------------
+# Location filter
+# A job passes if its location field contains an allowed_substring OR the
+# job is flagged remote by the API.  Then the description is scanned for
+# suburb names — if found without offsetting remote/hybrid language, the
+# job is excluded.
+# ---------------------------------------------------------------------------
+location_filter:
+  # Location field must contain at least one of these to pass.
+  # "South San Francisco" is handled separately and will NOT match here.
+  allowed_substrings:
+    - "San Francisco"
+    - "Remote"
+    - "Anywhere"
+    - "Work from Home"
+    - "WFH"
+
+  # If any of these appear in the job *description* (and the description
+  # does NOT also mention remote/hybrid work), the job is excluded even
+  # if the location field says "San Francisco".
+  suburb_exclusions:
+    - "South San Francisco"
+    - "Sunnyvale"
+    - "Mountain View"
+    - "Palo Alto"
+    - "San Jose"
+    - "Santa Clara"
+    - "Cupertino"
+    - "Milpitas"
+    - "Fremont"
+    - "Hayward"
+    - "Oakland"
+    - "Berkeley"
+    - "Emeryville"
+    - "San Mateo"
+    - "Foster City"
+    - "Redwood City"
+    - "Burlingame"
+    - "San Bruno"
+    - "Daly City"
+    - "Menlo Park"
+    - "Walnut Creek"
+    - "Concord"
+    - "Pleasanton"
+    - "Livermore"
+    - "Dublin, CA"
+    - "San Ramon"
+    - "San Rafael"
+    - "Novato"
+
+# ---------------------------------------------------------------------------
+# Category-specific filter rules
+# ---------------------------------------------------------------------------
+categories:
+
+  # -- Quality Assurance --
+  # Target: senior / management level, software industry only.
+  qa:
+    # Job title must contain at least one of these to be classified as QA.
+    title_keywords:
+      - "quality assurance"
+      - "quality engineer"
+      - "qa engineer"
+      - "qa manager"
+      - "qa lead"
+      - "qa analyst"
+      - "sdet"
+      - "test engineer"
+      - "test automation engineer"
+      - "software tester"
+      - "quality control engineer"
+
+    # FILTER — description must contain at least one (confirms software industry).
+    # Excludes food safety QA, pharmaceutical QA, manufacturing QA, etc.
+    industry_keywords:
+      - "software"
+      - "application"
+      - "web"
+      - "mobile"
+      - "api"
+      - "agile"
+      - "scrum"
+      - "selenium"
+      - "test automation"
+      - "cypress"
+      - "playwright"
+      - "ci/cd"
+      - "saas"
+      - "devops"
+      - "jira"
+      - "github"
+      - "jenkins"
+      - "code"
+      - "programming"
+      - "development"
+
+    # FILTER — title OR description must contain at least one (confirms seniority).
+    # Matches both explicit titles ("Senior QA Engineer") and description signals
+    # ("5+ years of experience in QA").
+    seniority_include_keywords:
+      - "senior"
+      - "sr."
+      - "sr "
+      - "lead"
+      - "principal"
+      - "manager"
+      - "director"
+      - "staff"
+      - "5+ years"
+      - "6+ years"
+      - "7+ years"
+      - "8+ years"
+      - "5 years"
+      - "6 years"
+      - "7 years"
+
+  # -- Product Manager --
+  # Target: associate / junior / entry-level, software/tech industry only.
+  pm:
+    # Job title must contain at least one of these to be classified as PM.
+    title_keywords:
+      - "product manager"
+      - "product management"
+      - "product owner"
+
+    # FILTER — description must contain at least one (confirms tech industry).
+    # Excludes retail category managers, event PMs, construction PMs, etc.
+    industry_keywords:
+      - "product"
+      - "software"
+      - "app"
+      - "platform"
+      - "saas"
+      - "roadmap"
+      - "agile"
+      - "sprint"
+      - "backlog"
+      - "user story"
+      - "engineering"
+      - "tech"
+      - "startup"
+      - "b2b"
+      - "b2c"
+      - "feature"
+
+    # FILTER — if title OR description contains any of these, job is excluded.
+    # Catches senior roles that only signal seniority in the description.
+    seniority_exclude_keywords:
+      - "senior"
+      - "sr."
+      - "sr "
+      - "lead"
+      - "principal"
+      - "director"
+      - "vp"
+      - "vice president"
+      - "head of"
+      - "5+ years"
+      - "6+ years"
+      - "7+ years"
+      - "8+ years"
+
+    # If title OR description contains one of these, the job is cleanly passed.
+    # If NONE are found (and no exclude signals), the job still passes but is
+    # tagged [seniority unclear] in the email so you can eyeball it.
+    seniority_include_keywords:
+      - "associate"
+      - "junior"
+      - "jr."
+      - "jr "
+      - "entry level"
+      - "entry-level"
+      - "0-2 years"
+      - "1-2 years"
+      - "1-3 years"
+      - "2+ years"
+      - "new grad"
+
+  # -- Writing --
+  # Target: technical writer (primary), copywriter (secondary),
+  #         any entry-level writing job (tertiary).
+  # No industry restriction. Writing is a career change, so senior/executive
+  # titles are excluded (title-only check, same rationale as PM).
+  writing:
+    # Job title must contain at least one of these to be classified as Writing.
+    title_keywords:
+      - "technical writer"
+      - "technical writing"
+      - "copywriter"
+      - "copy writer"
+      - "content writer"
+      - "writer"
+      - "ux writer"
+      - "content strategist"
+
+    # FILTER — if the job TITLE contains any of these, the job is excluded.
+    # Checked against title only (not description) — seniority words like
+    # "senior" and "lead" appear constantly as verbs in writing job descriptions.
+    seniority_exclude_keywords:
+      - "senior"
+      - "sr."
+      - "sr "
+      - "lead"
+      - "principal"
+      - "staff"
+      - "director"
+      - "vp"
+      - "vice president"
+      - "head of"
+      - "manager"
+
+    # Sub-classification for the email display tag.
+    # Checked in order: technical → copywriting → general (first match wins).
+    subcategories:
+      technical:
+        - "technical writer"
+        - "technical writing"
+        - "ux writer"
+        - "documentation"
+      copywriting:
+        - "copywriter"
+        - "copy writer"
+        - "content strategist"
+      general:
+        - "writer"
+        - "content writer"
+
+# ---------------------------------------------------------------------------
+# Email settings
+# recipient, gmail_address, and gmail_app_password are set via environment
+# variables (RECIPIENT_EMAIL, GMAIL_ADDRESS, GMAIL_APP_PASSWORD) — do NOT
+# put credentials in this file.
+# ---------------------------------------------------------------------------
+email:
+  subject_prefix: "Job Digest"
+  # Set to true to receive an email even when no new jobs were found.
+  send_if_empty: false

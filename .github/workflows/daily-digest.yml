@@ -1,0 +1,50 @@
+name: Daily Job Digest
+
+on:
+  # Runs every day at 8:00 AM EST (13:00 UTC).
+  # During EDT (daylight saving, Mar–Nov) this is 9:00 AM local.
+  # Adjust the cron expression if you want a different time.
+  schedule:
+    - cron: '0 13 * * *'
+
+  # Lets you trigger a run manually from the Actions tab to test
+  # without waiting for the scheduled time.
+  workflow_dispatch:
+
+permissions:
+  # Needed to commit seen_jobs.json back to the repository after each run.
+  contents: write
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run job digest
+        env:
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+        run: python digest.py
+
+      # Commits seen_jobs.json back to the repo so the next run knows which
+      # jobs have already been sent. The [skip ci] tag prevents this commit
+      # from re-triggering the workflow.
+      - name: Commit updated seen_jobs.json
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update seen job IDs [skip ci]"
+          file_pattern: seen_jobs.json
