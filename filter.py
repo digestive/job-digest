@@ -112,10 +112,11 @@ def passes_location(job: dict, location_config: dict) -> tuple[bool, bool]:
 
 def passes_qa_filter(job: dict, qa_config: dict) -> tuple[bool, str]:
     """
-    QA-specific filter (both conditions must pass):
+    QA-specific filter (all conditions must pass):
       1. Description must contain at least one software-industry keyword.
          Filters out food-safety QA, pharmaceutical QA, manufacturing QA, etc.
-      2. Title OR description must contain at least one seniority signal.
+      2. Title must NOT contain executive-level signals (VP, Director, etc.).
+      3. Title OR description must contain at least one seniority signal.
          Captures explicit titles ("Senior QA Engineer") and description-level
          signals ("5+ years of QA experience").
 
@@ -127,6 +128,9 @@ def passes_qa_filter(job: dict, qa_config: dict) -> tuple[bool, str]:
 
     if not _contains_any(desc, qa_config.get("industry_keywords", [])):
         return False, "failed software-industry check (none of the industry keywords found in description)"
+
+    if _contains_any(title, qa_config.get("executive_exclude_keywords", [])):
+        return False, "excluded: executive-level title"
 
     if not _contains_any(combined, qa_config.get("seniority_include_keywords", [])):
         return False, "failed seniority check (no senior/lead/manager signal found in title or description)"

@@ -175,6 +175,20 @@ categories:
       - "6 years"
       - "7 years"
 
+    # FILTER — job TITLE must NOT contain any of these (excludes executive roles).
+    # Checked against the title only, so description references like
+    # "reports to the VP of Engineering" do not produce false positives.
+    executive_exclude_keywords:
+      - "vice president"
+      - "vp of"
+      - "vp,"
+      - " vp "
+      - "director"
+      - "head of"
+      - "chief"
+      - "cto"
+      - "cqo"
+
   # -- Product Manager --
   # Target: associate / junior / entry-level, software/tech industry only.
   pm:
