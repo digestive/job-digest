@@ -235,6 +235,12 @@ categories:
       - "7+ years"
       - "8+ years"
 
+    # Jobs whose descriptions explicitly require more years than this are excluded.
+    # Catches ranges like "5-7 years" that keyword matching alone would miss.
+    # The lower bound of a range is used ("3-5 years" → 3).
+    # Set to 0 to disable.
+    max_years_experience: 2
+
     # If title OR description contains one of these, the job is cleanly passed.
     # If NONE are found (and no exclude signals), the job still passes but is
     # tagged [seniority unclear] in the email so you can eyeball it.
@@ -267,6 +273,10 @@ categories:
       - "writer"
       - "ux writer"
       - "content strategist"
+
+    # Jobs whose descriptions explicitly require more years than this are excluded.
+    # Set to 0 to disable.
+    max_years_experience: 2
 
     # FILTER — if the job TITLE contains any of these, the job is excluded.
     # Checked against title only (not description) — seniority words like

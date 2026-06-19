@@ -5,7 +5,54 @@ Design principle: the job *description* is the authoritative source.
 Structured fields (title, location, seniority) are hints that may lie.
 When they contradict the description, the description wins.
 """
+import re
 from typing import Optional
+
+# ---------------------------------------------------------------------------
+# Compiled regexes
+# ---------------------------------------------------------------------------
+
+# Detects elevated level suffixes in job titles (level II and above).
+# Matches Roman numerals II–VIII and tech-style level designators like L3/L4.
+# "Level I" / "Grade 1" / "L1" are intentionally NOT matched — those are
+# entry-level designations.
+_ELEVATED_LEVEL_RE = re.compile(
+    r"\b(?:II|III|IV|VI?I?I?)\b"           # Roman numerals II, III, IV, V, VI, VII, VIII
+    r"|\b(?:level|grade|tier)\s*[2-9]\b"   # "Level 2", "Grade 3", "Tier 2"
+    r"|\bL[2-9]\b",                        # "L3", "L4" (common in tech job levels)
+    re.IGNORECASE,
+)
+
+# Detects explicit years-of-experience requirements in description text.
+# Captures the lower bound so a range like "3-5 years" yields 3.
+_YEARS_REQUIRED_RE = re.compile(
+    r"\b(\d+)\s*[-–]\s*\d+\s+years?\b"         # "3-5 years", "5–7 years"
+    r"|\b(\d+)\s*\+\s*years?\b"                 # "5+ years"
+    r"|\b(\d+)\s+years?\s+of\b"                 # "5 years of [experience]"
+    r"|\bat\s+least\s+(\d+)\s+years?\b"         # "at least 5 years"
+    r"|\bminimum\s+(?:of\s+)?(\d+)\s+years?\b", # "minimum of 5 years"
+    re.IGNORECASE,
+)
+
+
+def _max_min_years_required(text: str) -> Optional[int]:
+    """
+    Scan *text* for explicit years-of-experience requirements and return the
+    highest minimum found (i.e., the most restrictive lower bound), or None
+    if no numeric requirement is detected.
+
+    Examples:
+        "3-5 years of experience"   → 3
+        "5+ years required"         → 5
+        "at least 4 years"          → 4
+    """
+    mins = [
+        int(g)
+        for m in _YEARS_REQUIRED_RE.finditer(text)
+        for g in m.groups()
+        if g is not None
+    ]
+    return max(mins) if mins else None
 
 
 def _contains_any(text: str, keywords: list[str]) -> bool:
@@ -142,16 +189,20 @@ def passes_pm_filter(job: dict, pm_config: dict) -> tuple[bool, str]:
     """
     PM-specific filter. Returns (passes: bool, flag_or_reason: str).
 
-    Three checks in order:
+    When passes=False the second value is a human-readable rejection reason.
+    When passes=True the second value is either "" (clean pass) or a flag
+    string like "seniority unclear" to be surfaced in the email.
+
+    Checks in order:
       1. Description must contain at least one tech-industry keyword.
-         Filters out retail category managers, event PMs, construction PMs.
-      2. Job TITLE must NOT contain senior-level signals.
-         NOTE: We check the title only — not the full description. Words like
-         "lead", "senior", and "director" appear constantly in PM job descriptions
-         as verbs or references ("lead cross-functional teams", "reports to the
-         Senior Director") and would produce false positives if checked against
-         the description.
-      3. Title OR description should contain entry-level signals.
+      2. Job TITLE must NOT contain senior-level signals (title only — words
+         like "lead" and "senior" appear constantly as verbs in descriptions).
+      3. Job TITLE must NOT contain an elevated level suffix (II, III, L3 …).
+         "Product Manager I" is fine; anything higher is not entry-level.
+      4. Description must NOT explicitly require more years than the configured
+         threshold (max_years_experience). Catches ranges like "5-7 years" that
+         keyword matching alone would miss.
+      5. Title OR description should contain entry-level signals.
          If none are found (but no senior signals either), the job still passes
          but is tagged [seniority unclear] in the email.
     """
@@ -160,11 +211,30 @@ def passes_pm_filter(job: dict, pm_config: dict) -> tuple[bool, str]:
     combined = f"{title} {desc}"
 
     if not _contains_any(desc, pm_config.get("industry_keywords", [])):
-        return False, ""
+        return False, "failed tech-industry check (no industry keywords in description)"
 
     # Exclude check: TITLE only — not combined title+description.
     if _contains_any(title, pm_config.get("seniority_exclude_keywords", [])):
-        return False, ""
+        triggered = [
+            kw for kw in pm_config.get("seniority_exclude_keywords", [])
+            if kw.lower() in title.lower()
+        ]
+        return False, f"title contains seniority-exclude keyword(s): {triggered}"
+
+    # Elevated level suffix: "Product Manager II" or higher → excluded.
+    if _ELEVATED_LEVEL_RE.search(title):
+        return False, f"title has elevated level suffix (II or higher): {title!r}"
+
+    # Years-of-experience check: exclude if description requires more than the
+    # configured threshold. Default 0 disables the check.
+    max_years = pm_config.get("max_years_experience", 0)
+    if max_years > 0:
+        min_years_req = _max_min_years_required(desc)
+        if min_years_req is not None and min_years_req > max_years:
+            return False, (
+                f"description requires {min_years_req}+ years experience "
+                f"(threshold: {max_years})"
+            )
 
     if _contains_any(combined, pm_config.get("seniority_include_keywords", [])):
         return True, ""
@@ -224,20 +294,7 @@ def apply_all_filters(
     elif category == "pm":
         passes, pm_flag = passes_pm_filter(job, categories_config.get("pm", {}))
         if not passes:
-            # Report which specific keyword triggered the exclusion.
-            if verbose:
-                pm_cfg = categories_config.get("pm", {})
-                title = job.get("title", "")
-                desc = job.get("description", "")
-                if not _contains_any(desc, pm_cfg.get("industry_keywords", [])):
-                    reason = "failed tech-industry check (no industry keywords in description)"
-                else:
-                    triggered = [
-                        kw for kw in pm_cfg.get("seniority_exclude_keywords", [])
-                        if kw.lower() in title.lower()
-                    ]
-                    reason = f"title contains seniority-exclude keyword(s): {triggered}"
-                skip(reason)
+            skip(pm_flag)
             return None
         if pm_flag:
             flags.append(pm_flag)
@@ -251,6 +308,20 @@ def apply_all_filters(
         ):
             skip("writing: title contains seniority-exclude keyword")
             return None
+        # Elevated level suffix: "Content Writer II" or higher → excluded.
+        if _ELEVATED_LEVEL_RE.search(job.get("title", "")):
+            skip(f"writing: title has elevated level suffix (II or higher): {job.get('title', '')!r}")
+            return None
+        # Years-of-experience check (same logic as PM).
+        max_years = writing_cfg.get("max_years_experience", 0)
+        if max_years > 0:
+            min_years_req = _max_min_years_required(job.get("description", ""))
+            if min_years_req is not None and min_years_req > max_years:
+                skip(
+                    f"writing: description requires {min_years_req}+ years experience "
+                    f"(threshold: {max_years})"
+                )
+                return None
         subcat = writing_subcategory(job, writing_cfg)
         job = {**job, "writing_subcategory": subcat}
 
