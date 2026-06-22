@@ -173,6 +173,24 @@ def passes_qa_filter(job: dict, qa_config: dict) -> tuple[bool, str]:
     title = job.get("title", "")
     combined = f"{title} {desc}"
 
+    # Junior/entry-level title exclusion — must come before the seniority_include
+    # check because descriptions often mention "senior" in non-seniority context
+    # (e.g. "reports to a Senior Engineer"), allowing junior titles to slip through.
+    if _contains_any(title, qa_config.get("junior_exclude_keywords", [])):
+        return False, "excluded: junior or entry-level signal in title"
+
+    # Non-software industry exclusion via title — faster and more reliable than
+    # description scanning for clear cases (e.g. "Hardware QA", "Food Safety QA").
+    if _contains_any(title, qa_config.get("industry_exclude_title_keywords", [])):
+        return False, "excluded: non-software industry keyword in title"
+
+    # Non-software industry exclusion via description — catches cases where the
+    # title is generic but the description reveals the industry (e.g. HACCP,
+    # food safety). These terms are specific enough to avoid false positives in
+    # genuine software QA descriptions.
+    if _contains_any(desc, qa_config.get("industry_exclude_description_keywords", [])):
+        return False, "excluded: non-software industry keyword in description"
+
     if not _contains_any(desc, qa_config.get("industry_keywords", [])):
         return False, "failed software-industry check (none of the industry keywords found in description)"
 
@@ -268,13 +286,20 @@ def apply_all_filters(
             print(f"    SKIP  {label}")
             print(f"          reason: {reason}")
 
-    # 1. Classify by title
+    # 1. URL blocklist — drop jobs from known unreliable sources immediately.
+    url = job.get("url", "")
+    for blocked in config.get("url_blocklist", []):
+        if blocked in url:
+            skip(f"url blocked: {blocked}")
+            return None
+
+    # 2. Classify by title
     category = classify_job(job, categories_config)
     if category is None:
         skip("title not matched to any category (qa/pm/writing)")
         return None
 
-    # 2. Location validation
+    # 3. Location validation
     loc_passes, loc_flag = passes_location(job, location_config)
     if not loc_passes:
         skip(f"location field {job.get('location')!r} does not contain SF or Remote")
@@ -284,7 +309,7 @@ def apply_all_filters(
     if loc_flag:
         flags.append("location: check description")
 
-    # 3. Category-specific rules
+    # 4. Category-specific rules
     if category == "qa":
         qa_passes, qa_reason = passes_qa_filter(job, categories_config.get("qa", {}))
         if not qa_passes:

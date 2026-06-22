@@ -60,6 +60,15 @@ searches:
     category: writing
 
 # ---------------------------------------------------------------------------
+# URL blocklist
+# Any job whose apply URL contains one of these substrings is dropped before
+# any other filter runs. Use this to exclude unreliable scrapers or
+# aggregators that produce stale/redirect-heavy listings.
+# ---------------------------------------------------------------------------
+url_blocklist:
+  - "frontendnode-production.up.railway.app"
+
+# ---------------------------------------------------------------------------
 # Location filter
 # A job passes if its location field contains an allowed_substring OR the
 # job is flagged remote by the API.  Then the description is scanned for
@@ -188,6 +197,54 @@ categories:
       - "chief"
       - "cto"
       - "cqo"
+
+    # FILTER — job TITLE must NOT contain any of these junior/entry-level signals.
+    # QA targets senior and management level roles. Checked against title only
+    # because description text frequently mentions "senior" or experience years
+    # in unrelated context (e.g. "reports to a Senior Engineer"), which would
+    # otherwise let junior postings pass the seniority_include check below.
+    junior_exclude_keywords:
+      - "junior"
+      - "jr."
+      - "jr "
+      - "entry level"
+      - "entry-level"
+      - "associate"
+
+    # FILTER — job TITLE containing any of these immediately indicates a
+    # non-software industry. The job is excluded before the description is checked.
+    # Title-level signals are reliable: a title like "Hardware QA Engineer" or
+    # "Food Safety QA Specialist" unambiguously places the role outside software.
+    industry_exclude_title_keywords:
+      - "food"
+      - "hardware"
+      - "pharmaceutical"
+      - "pharma"
+      - "GMP"
+      - "HACCP"
+      - "mechanical"
+      - "electrical"
+      - "semiconductor"
+      - "chemical"
+      - "manufacturing"
+      - "supply chain"
+
+    # FILTER — description containing any of these strongly implies a non-software
+    # industry even when generic software-adjacent words (code, development,
+    # application) also appear. These terms are specific enough that they will
+    # not appear in legitimate software QA job descriptions.
+    industry_exclude_description_keywords:
+      - "HACCP"
+      - "food safety"
+      - "good manufacturing practice"
+      - "food production"
+      - "food manufacturing"
+      - "printed circuit board"
+      - "PCB assembly"
+      - "soldering"
+      - "semiconductor fabrication"
+      - "food and drug"
+      - "ISO 22000"
 
   # -- Product Manager --
   # Target: associate / junior / entry-level, software/tech industry only.
