@@ -181,8 +181,23 @@ def passes_qa_filter(job: dict, qa_config: dict) -> tuple[bool, str]:
 
     # Non-software industry exclusion via title — faster and more reliable than
     # description scanning for clear cases (e.g. "Hardware QA", "Food Safety QA").
-    if _contains_any(title, qa_config.get("industry_exclude_title_keywords", [])):
+    # For titles that follow the "[Role], [Industry Domain]" pattern common on
+    # job boards (e.g. "QA Manager, Jewelry & Luggage"), only the pre-comma role
+    # descriptor is checked here. The post-comma domain qualifier is checked
+    # separately below so each check produces a distinct, actionable reason.
+    role_part = title.split(",", 1)[0] if "," in title else title
+    if _contains_any(role_part, qa_config.get("industry_exclude_title_keywords", [])):
         return False, "excluded: non-software industry keyword in title"
+
+    # Non-software industry exclusion via domain qualifier — checks the portion of
+    # the title after the first comma (if present). This catches titles like:
+    #   "QA Manager, Jewelry & Luggage"          → qualifier: "Jewelry & Luggage"
+    #   "Dir, Clinical Research QA & Regulatory" → qualifier: "Clinical Research..."
+    # Using the same exclusion list as the role-part check above; no new config needed.
+    if "," in title:
+        qualifier = title.split(",", 1)[1].strip()
+        if _contains_any(qualifier, qa_config.get("industry_exclude_title_keywords", [])):
+            return False, "excluded: non-software domain qualifier in title"
 
     # Non-software industry exclusion via description — catches cases where the
     # title is generic but the description reveals the industry (e.g. HACCP,

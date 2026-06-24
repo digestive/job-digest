@@ -215,7 +215,11 @@ categories:
     # non-software industry. The job is excluded before the description is checked.
     # Title-level signals are reliable: a title like "Hardware QA Engineer" or
     # "Food Safety QA Specialist" unambiguously places the role outside software.
+    # Note: this list is also checked against the post-comma domain qualifier in
+    # titles that follow the "[Role], [Industry]" pattern (e.g.
+    # "QA Manager, Jewelry & Luggage"). See passes_qa_filter() in filter.py.
     industry_exclude_title_keywords:
+      # --- original ---
       - "food"
       - "hardware"
       - "pharmaceutical"
@@ -228,12 +232,85 @@ categories:
       - "chemical"
       - "manufacturing"
       - "supply chain"
+      # --- life sciences / clinical / pharma ---
+      # "clinical" alone catches "Clinical Research QA", "Clinical QA Manager",
+      # etc. Edge case: "QA Engineer, Clinical Software" is legitimate software QA,
+      # but such roles almost always include a product name ("EMR", "EHR",
+      # "healthcare software") rather than just "clinical".
+      - "clinical"
+      - "clinical research"
+      - "clinical trial"
+      - "gcp"
+      - "glp"
+      - "pharmacovigilance"
+      - "drug safety"
+      - "biopharmaceutical"
+      - "biopharma"
+      # --- food & beverage (additional) ---
+      - "beverage"
+      - "brewery"
+      - "brewing"
+      - "dairy"
+      - "winery"
+      - "culinary"
+      # --- manufacturing verticals (additional) ---
+      - "automotive"
+      - "aerospace"
+      - "aviation"
+      - "defense"
+      - "defence"
+      - "plastics"
+      - "composites"
+      - "metallurgy"
+      # --- retail / consumer goods ---
+      - "retail"
+      - "jewelry"
+      - "jewellery"
+      - "luggage"
+      - "apparel"
+      - "fashion"
+      - "textile"
+      - "beauty"
+      - "cosmetics"
+      - "accessories"
+      - "luxury"
+      - "consumer goods"
+      - "consumer products"
+      - "merchandise"
+      - "footwear"
+      - "toys"
+      - "sporting goods"
+      - "furniture"
+      - "home goods"
+      - "garment"
+      # --- construction / civil engineering ---
+      - "construction"
+      - "civil"
+      - "structural"
+      - "real estate"
+      # --- energy / oil & gas / mining ---
+      - "oil"
+      - "gas"
+      - "petroleum"
+      - "mining"
+      - "refinery"
+      - "drilling"
+      # --- agriculture ---
+      - "agricultural"
+      - "agriculture"
+      - "agrochemical"
+      # --- warehousing / logistics ---
+      # "logistics software QA" roles almost always include "software" or
+      # "platform" in the title; bare "logistics QA" is warehouse operations.
+      - "warehouse"
+      - "logistics"
 
     # FILTER — description containing any of these strongly implies a non-software
     # industry even when generic software-adjacent words (code, development,
     # application) also appear. These terms are specific enough that they will
     # not appear in legitimate software QA job descriptions.
     industry_exclude_description_keywords:
+      # --- original ---
       - "HACCP"
       - "food safety"
       - "good manufacturing practice"
@@ -245,6 +322,60 @@ categories:
       - "semiconductor fabrication"
       - "food and drug"
       - "ISO 22000"
+      # --- life sciences / clinical / pharma ---
+      - "GCP"
+      - "GLP"
+      - "ICH guidelines"
+      - "FDA 21 CFR"
+      - "protocol deviation"
+      - "pharmacovigilance"
+      - "investigational drug"
+      - "investigational product"
+      - "ISO 13485"
+      - "ISO 14971"
+      - "eCTD"
+      - "CDISC"
+      - "informed consent"
+      - "adverse event reporting"
+      # --- food & beverage (additional) ---
+      - "allergen"
+      - "pathogen testing"
+      - "food processing"
+      - "FSMA"
+      - "beverage production"
+      # --- manufacturing (additional) ---
+      - "IATF 16949"
+      - "AS9100"
+      - "PPAP"
+      - "assembly line"
+      - "shop floor"
+      - "lean manufacturing"
+      - "machining"
+      - "welding"
+      - "casting"
+      - "injection molding"
+      # --- retail / consumer goods ---
+      - "SKU"
+      - "retail store"
+      - "consumer goods"
+      - "merchandise"
+      - "garment inspection"
+      - "fabric testing"
+      - "consumer product safety"
+      # --- construction ---
+      - "building codes"
+      - "site inspection"
+      - "structural integrity"
+      - "construction defect"
+      # --- energy / oil & gas ---
+      - "oil and gas"
+      - "drilling operations"
+      - "pipeline inspection"
+      - "ISO 29001"
+      # --- agriculture ---
+      - "crop production"
+      - "agrochemical"
+      - "pesticide quality"
 
   # -- Product Manager --
   # Target: associate / junior / entry-level, software/tech industry only.
