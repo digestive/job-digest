@@ -18,16 +18,15 @@ api:
 
 # ---------------------------------------------------------------------------
 # Search queries sent to the JSearch API.
-# Each entry produces one API call. Keep total calls ≤ ~6/day on the free
-# tier (200 requests/month).  remote_only: true fetches jobs with no
+# Each entry produces one API call. 6 searches × 31 days = 186 requests/month,
+# safely within the free tier limit of 200. remote_only: true fetches jobs with no
 # specific city — use this to catch fully-remote postings.
 # ---------------------------------------------------------------------------
 searches:
   # -- Quality Assurance --
-  - query: "quality assurance engineer"
-    location: "San Francisco, CA, USA"
-    category: qa
-  - query: "quality assurance manager"
+  # Broad "quality assurance" query captures both engineers and managers;
+  # filter.py classifies by title keywords after retrieval.
+  - query: "quality assurance"
     location: "San Francisco, CA, USA"
     category: qa
   - query: "quality assurance engineer"
@@ -35,9 +34,9 @@ searches:
     category: qa
 
   # -- Product Manager --
-  - query: "product manager"
-    location: "San Francisco, CA, USA"
-    category: pm
+  # "associate product manager" targets the entry-level niche directly;
+  # generic PM-SF search dropped since APMs appear in this query and the
+  # filter excludes senior titles anyway.
   - query: "associate product manager"
     location: "San Francisco, CA, USA"
     category: pm
@@ -46,17 +45,13 @@ searches:
     category: pm
 
   # -- Writing --
-  - query: "technical writer"
+  # Broad "writer" query captures technical writers, copywriters, and content
+  # writers in one call; filter.py handles sub-classification by title keywords.
+  - query: "writer"
     location: "San Francisco, CA, USA"
     category: writing
   - query: "technical writer"
     remote_only: true
-    category: writing
-  - query: "copywriter"
-    location: "San Francisco, CA, USA"
-    category: writing
-  - query: "content writer"
-    location: "San Francisco, CA, USA"
     category: writing
 
 # ---------------------------------------------------------------------------
