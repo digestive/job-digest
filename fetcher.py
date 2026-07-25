@@ -42,7 +42,7 @@ def _normalize(raw: dict) -> dict:
         salary = None
 
     return {
-        "id": raw.get("job_id", ""),
+        "id": raw.get("job_uid", ""),
         "title": raw.get("job_title", ""),
         "company": raw.get("employer_name", ""),
         "location": location,
